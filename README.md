@@ -30,3 +30,4 @@ The algorithm efficiently explores the grid and returns the optimal path as a JS
    ```bash
    git clone [https://github.com/kgamal001/AI-Maze-Solver..git](https://github.com/kgamal001/AI-Maze-Solver..git)
    cd AI-Maze-Solver
+   python3 app.py
