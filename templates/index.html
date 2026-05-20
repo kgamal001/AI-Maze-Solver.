@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Maze Solver Game</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: rgba(15, 23, 42, 0.92);
+        --panel-border: rgba(148, 163, 184, 0.18);
+        --text: #e5eefb;
+        --muted: #93a4bf;
+        --accent: #38bdf8;
+        --accent-strong: #0ea5e9;
+        --grid-bg: #0f172a;
+        --cell: #d7e0ee;
+        --wall: #111827;
+        --start: #22c55e;
+        --end: #ef4444;
+        --path: #facc15;
+        --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(56, 189, 248, 0.18),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(34, 197, 94, 0.16),
+            transparent 28%
+          ),
+          linear-gradient(135deg, #050816 0%, #0b1020 45%, #111827 100%);
+      }
+
+      .app-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 24px;
+        padding: 24px;
+      }
+
+      .sidebar,
+      .main-card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .sidebar {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        letter-spacing: -0.04em;
+      }
+
+      .brand p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .section {
+        display: grid;
+        gap: 12px;
+      }
+
+      .section h2 {
+        margin: 0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+
+      .mode-group,
+      .button-group {
+        display: grid;
+        gap: 10px;
+      }
+
+      .mode-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: 0.2s ease;
+        user-select: none;
+      }
+
+      .mode-option:hover,
+      .mode-option.active {
+        border-color: rgba(56, 189, 248, 0.55);
+        background: rgba(56, 189, 248, 0.12);
+      }
+
+      .mode-option input {
+        accent-color: var(--accent);
+      }
+
+      button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+        border-radius: 14px;
+        padding: 13px 16px;
+        transition:
+          transform 0.15s ease,
+          background 0.2s ease,
+          opacity 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+        transform: none;
+      }
+
+      .primary-btn {
+        background: linear-gradient(
+          135deg,
+          var(--accent),
+          var(--accent-strong)
+        );
+        color: white;
+        font-weight: 700;
+      }
+
+      .secondary-btn {
+        background: rgba(148, 163, 184, 0.14);
+        color: var(--text);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+      }
+
+      .status {
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        color: var(--muted);
+        line-height: 1.5;
+        min-height: 92px;
+      }
+
+      .main-card {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        min-width: 0;
+      }
+
+      .main-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .main-header h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        letter-spacing: -0.03em;
+      }
+
+      .main-header p {
+        margin: 4px 0 0;
+        color: var(--muted);
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+
+      .dot.open {
+        background: var(--cell);
+      }
+      .dot.wall {
+        background: var(--wall);
+      }
+      .dot.start {
+        background: var(--start);
+      }
+      .dot.end {
+        background: var(--end);
+      }
+      .dot.path {
+        background: var(--path);
+      }
+
+      .grid-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 12px;
+        overflow: auto;
+      }
+
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(20, 26px);
+        grid-template-rows: repeat(20, 26px);
+        gap: 2px;
+        padding: 10px;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 18px;
+        touch-action: none;
+      }
+
+      .cell {
+        width: 26px;
+        height: 26px;
+        background: var(--cell);
+        border-radius: 5px;
+        transition:
+          background-color 0.15s ease,
+          transform 0.15s ease;
+      }
+
+      .cell:hover {
+        transform: scale(1.05);
+      }
+
+      .cell.wall {
+        background: var(--wall);
+      }
+      .cell.start {
+        background: var(--start);
+      }
+      .cell.end {
+        background: var(--end);
+      }
+      .cell.path {
+        background: var(--path);
+      }
+
+      @media (max-width: 1100px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          order: 2;
+        }
+
+        .main-card {
+          order: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <h1>AI Maze Solver</h1>
+          <p>
+            Build a maze, place start and end points, then let A* find the
+            shortest route.
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>Mode Selector</h2>
+          <div class="mode-group" id="modeGroup">
+            <label class="mode-option active">
+              <input type="radio" name="mode" value="start" checked />
+              <span>Set Start (Green)</span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="mode" value="end" />
+              <span>Set End (Red)</span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="mode" value="wall" />
+              <span>Draw Walls (Black)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Maze Generation</h2>
+          <p id="wallDensityLabel">Wall Density: 30%</p>
+          <input
+            id="wallDensitySlider"
+            type="range"
+            min="0"
+            max="100"
+            value="30"
+          />
+          <div class="button-group">
+            <button id="clearGridBtn" class="secondary-btn" type="button">
+              Clear Grid
+            </button>
+            <button id="randomMazeBtn" class="secondary-btn" type="button">
+              Generate Random Maze
+            </button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Action</h2>
+          <button id="solveBtn" class="primary-btn" type="button">
+            Solve (A* Algorithm)
+          </button>
+        </div>
+
+        <div class="status" id="statusBox">
+          Ready. Select a mode, place start and end points, draw walls, and
+          solve the maze.
+        </div>
+      </aside>
+
+      <main class="main-card">
+        <div class="main-header">
+          <div>
+            <h2>20 x 20 Maze Grid</h2>
+            <p>
+              Click or drag to edit cells. The shortest path will animate in
+              yellow.
+            </p>
+          </div>
+          <div class="legend" aria-label="Legend">
+            <span><i class="dot open"></i>Open</span>
+            <span><i class="dot wall"></i>Wall</span>
+            <span><i class="dot start"></i>Start</span>
+            <span><i class="dot end"></i>End</span>
+            <span><i class="dot path"></i>Path</span>
+          </div>
+        </div>
+
+        <div class="grid-wrap">
+          <div id="grid" aria-label="Maze grid"></div>
+        </div>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  </body>
+</html>
